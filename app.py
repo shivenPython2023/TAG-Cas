@@ -15,7 +15,7 @@ from tensorflow.keras.regularizers import l2
 
 # === 1. PAGE CONFIGURATION ===
 st.set_page_config(
-    page_title="SPARTAN Clinical Demo",
+    page_title="TAG-Cas Clinical Demo",
     page_icon="🧬",
     layout="centered",
     initial_sidebar_state="collapsed"
@@ -75,7 +75,7 @@ def one_hot_encode(seq, length):
 
 # === 4. UI LAYOUT & LOGIC ===
 def main():
-    st.title("SPARTAN")
+    st.title("TAG-Cas")
     st.subheader("3D-Aware CRISPR Off-Target Predictor")
     st.markdown("---")
 
@@ -83,13 +83,25 @@ def main():
     df, scaler = load_database()
 
     st.markdown("### Enter Genomic Parameters")
+    
+    # Row 1: Sequences
     col1, col2 = st.columns(2)
     with col1:
         grna_seq = st.text_input("Guide RNA (23bp)", value="GTCATCTTAGTCATTACCTGAGG").upper()
     with col2:
         target_seq = st.text_input("Target DNA (23bp)", value="GGTATCTAAGTCATTACCTGTGG").upper()
     
-    coord = st.text_input("Genomic Coordinate (Optional)", value="chr5:92701253")
+    # Row 2: Coordinates & Cell Line
+    col3, col4 = st.columns(2)
+    with col3:
+        coord = st.text_input("Genomic Coordinate", value="chr5:92701253")
+    with col4:
+        # NEW CELL LINE DROPDOWN
+        cell_line = st.selectbox(
+            "Target Cell Line", 
+            options=["K562", "HEK293T", "U2OS", "HeLa"], 
+            index=0
+        )
 
     if st.button("Run Diagnostic Scan", type="primary", use_container_width=True):
         
@@ -97,13 +109,14 @@ def main():
             st.error("Error: Both Guide RNA and Target DNA must be exactly 23 base pairs long.")
             return
 
-        progress_text = "Querying K562 Genomic Database..."
+        # Dynamically update the loading bar text with the chosen cell line
+        progress_text = f"Querying {cell_line} Genomic Database..."
         my_bar = st.progress(0, text=progress_text)
         
         match = df[(df['grna_target_sequence'] == grna_seq) & (df['target_sequence'] == target_seq)]
         
         time.sleep(2)
-        my_bar.progress(50, text="Extracting 3D Epigenetic & Sequence Context...")
+        my_bar.progress(50, text=f"Extracting 3D Epigenetic & Sequence Context for {cell_line}...")
         
         if not match.empty:
             row = match.iloc[0]
@@ -141,6 +154,7 @@ def main():
             
         st.markdown("#### Diagnostic Details")
         st.markdown(f"**Target Coordinate:** `{coord}`")
+        st.markdown(f"**Evaluated Cell Line:** `{cell_line}`") # Added to confirm the environment
 
 if __name__ == "__main__":
     main()
